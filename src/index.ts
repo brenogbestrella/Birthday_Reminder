@@ -1,7 +1,8 @@
 import axios from "axios";
+import cron from "node-cron";
 import nodemailer from "nodemailer";
-import schedule from "node-schedule";
 require('dotenv').config({ path: 'C:/Projetos/Birthday_Reminder/.env' });
+
 
 async function getOpenAIMessageMethod(message: string): Promise<string> {
   try {
@@ -60,30 +61,33 @@ async function sendEmail(message:string, subject: string): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const today = new Date();
-  const endDateString = process.env.END_DATE as string;
-  const messagePrompt = "I want you to write a message to my girlfriend, reminding her that my birthday is approaching. "+ 
-  `My birthday is on ${process.env.END_DATE}. I'd like the message to be humorous, `+
-  "in a playful tone, reminding her that she needs to buy a birthday present for me. "+ 
-  "End the message by always reminding her that her birthday present will depend on the birthday present she gives me. "+ 
-  "Keep the message short and direct. No need for presentation or cheers/signature at the end. "+
-  "Don't mention my name, neither my girlfriend's name.";
-  const subjectPrompt = "I want a email subject text for an email that is my birthday reminder to my girlfriend. " +
-                        `My birthday is on ${process.env.END_DATE}, and I'm sending a funny email to joke with her ` +
-                        "You don't need to mention her or me on the text."
+  cron.schedule('0 12 * * *', async function() {
+    const today = new Date();
+    const endDateString = process.env.END_DATE as string;
+    const messagePrompt = "I want you to write a message to my girlfriend, reminding her that my birthday is approaching. "+ 
+    `My birthday is on ${process.env.END_DATE}. I'd like the message to be humorous, `+
+    "in a playful tone, reminding her that she needs to buy a birthday present for me. "+ 
+    "End the message by always reminding her that her birthday present will depend on the birthday present she gives me. "+ 
+    "Keep the message short and direct. No need for presentation or cheers/signature at the end. "+
+    "Don't mention my name, neither my girlfriend's name.";
+    const subjectPrompt = "I want a email subject text for an email that is my birthday reminder to my girlfriend. " +
+                          `My birthday is on ${process.env.END_DATE}, and I'm sending a funny email to joke with her ` +
+                          "You don't need to mention her or me on the text."
 
-  if (endDateString != null) {
-    const endDate = new Date(endDateString);
+    if (endDateString != null) {
+      const endDate = new Date(endDateString);
 
-    if (today <= new Date(endDate)) {
-      const openAiMessage = await getOpenAIMessageMethod(messagePrompt);
-      const openAiSubject = await getOpenAIMessageMethod(subjectPrompt);
+      if (today <= new Date(endDate)) {
+        const openAiMessage = await getOpenAIMessageMethod(messagePrompt);
+        const openAiSubject = await getOpenAIMessageMethod(subjectPrompt);
 
-      await sendEmail(openAiMessage, openAiSubject);
+        await sendEmail(openAiMessage, openAiSubject);
+      }
     }
-  }
+  }, {
+  scheduled: true,
+  timezone: "America/Sao_Paulo"
+  })
 }
 
-const dailyAtTenAM = schedule.scheduleJob('0 10 * * *', () => {
-  main();
-})
+main();
